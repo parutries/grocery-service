@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-function Products() {
+const Products = () => {
     const [products, setProducts] = useState([]);
 
     useEffect(() => {
-        // Make sure the URL matches your backend endpoint
-        axios.get('http://localhost:5000/products')
-            .then(response => setProducts(response.data))
-            .catch(error => console.error("Error fetching products", error));
+        const fetchProducts = async () => {
+            const response = await axios.get('http://localhost:5000/products');
+            setProducts(response.data);
+        };
+
+        fetchProducts();
     }, []);
 
     return (
@@ -21,7 +23,6 @@ function Products() {
             </ul>
         </div>
     );
-}
+};
 
 export default Products;
-
