@@ -1,29 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const Orders = () => {
-    const [orders, setOrders] = useState([]);
-    const userId = 'yourUserId'; // Get this from the user's session or context
+const OrderPage = () => {
+  const [orders, setOrders] = useState([]);
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            const response = await axios.get(`http://localhost:5000/orders/user/${userId}`); // Implement this route
-            setOrders(response.data);
-        };
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/orders');
+        setOrders(response.data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+    fetchOrders();
+  }, []);
 
-        fetchOrders();
-    }, []);
-
-    return (
-        <div>
-            <h2>Your Orders</h2>
-            <ul>
-                {orders.map(order => (
-                    <li key={order._id}>Order ID: {order._id} - Status: {order.status}</li>
-                ))}
-            </ul>
-        </div>
-    );
+  return (
+    <div>
+      <h1>Your Orders</h1>
+      {orders.length === 0 ? (
+        <p>No orders yet.</p>
+      ) : (
+        <ul>
+          {orders.map((order, index) => (
+            <li key={index}>{order.name} - ${order.price}</li>
+          ))}
+        </ul>
+      )}
+      <button>Proceed to Checkout</button>
+    </div>
+  );
 };
 
-export default Orders;
+export default OrderPage;
