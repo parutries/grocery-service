@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -7,8 +8,10 @@ const orderRoutes = require('./routes/orderRoutes');
 
 dotenv.config();
 connectDB();
-
 const app = express();
+
+app.use(cors({ origin: 'http://localhost:3000' })); // Update with your frontend's URL
+
 app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);

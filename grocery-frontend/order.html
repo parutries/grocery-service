@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    .order-list {
+      margin-top: 20px;
+    }
+    .order-item {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Order Management</h1>
+
+    <!-- Create Order Form -->
+    <h2>Create an Order</h2>
+    <form id="createOrderForm">
+      <div class="form-group">
+        <label for="products">Products (comma-separated product IDs)</label>
+        <input type="text" id="products" name="products" required>
+      </div>
+      <div class="form-group">
+        <label for="paymentMethod">Payment Method</label>
+        <select id="paymentMethod" name="paymentMethod" required>
+          <option value="credit_card">Credit Card</option>
+          <option value="paypal">PayPal</option>
+          <option value="cash_on_delivery">Cash on Delivery</option>
+        </select>
+      </div>
+      <button type="submit">Create Order</button>
+    </form>
+
+    <!-- Orders List -->
+    <h2>Your Orders</h2>
+    <div id="orderList" class="order-list"></div>
+
+    <!-- Update Order Form -->
+    <h2>Update Order Status</h2>
+    <form id="updateOrderForm">
+      <div class="form-group">
+        <label for="updateOrderId">Order ID</label>
+        <input type="text" id="updateOrderId" name="updateOrderId" required>
+      </div>
+      <div class="form-group">
+        <label for="updatePaymentMethod">New Payment Method</label>
+        <select id="updatePaymentMethod" name="updatePaymentMethod" required>
+          <option value="credit_card">Credit Card</option>
+          <option value="paypal">PayPal</option>
+          <option value="cash_on_delivery">Cash on Delivery</option>
+        </select>
+      </div>
+      <button type="submit">Update Order</button>
+    </form>
+
+    <!-- Delete Order Form -->
+    <h2>Delete Order</h2>
+    <form id="deleteOrderForm">
+      <div class="form-group">
+        <label for="deleteOrderId">Order ID</label>
+        <input type="text" id="deleteOrderId" name="deleteOrderId" required>
+      </div>
+      <button type="submit">Delete Order</button>
+    </form>
+  </div>
+
+  <script>
+    // Fetch and display orders
+    async function fetchOrders() {
+      try {
+        const response = await fetch('/orders', { method: 'GET', headers: { 'Authorization': 'Bearer YOUR_TOKEN' } });
+        const orders = await response.json();
+        const orderList = document.getElementById('orderList');
+        orderList.innerHTML = '';
+
+        orders.forEach(order => {
+          const orderItem = document.createElement('div');
+          orderItem.classList.add('order-item');
+          orderItem.innerHTML = `
+            <p><strong>Order ID:</strong> ${order._id}</p>
+            <p><strong>Products:</strong> ${order.products.map(p => p.product).join(', ')}</p>
+            <p><strong>Total Price:</strong> $${order.totalPrice}</p>
+            <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+            <p><strong>Status:</strong> ${order.status}</p>
+          `;
+          orderList.appendChild(orderItem);
+        });
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      }
+    }
+
+    // Event listeners for forms
+    document.getElementById('createOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const products = document.getElementById('products').value.split(',').map(id => ({ product: id.trim(), quantity: 1 }));
+      const paymentMethod = document.getElementById('paymentMethod').value;
+
+      try {
+        const response = await fetch('/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer YOUR_TOKEN'
+          },
+          body: JSON.stringify({ products, paymentMethod })
+        });
+        const result = await response.json();
+        alert('Order created successfully!');
+        fetchOrders();
+      } catch (error) {
+        console.error('Failed to create order:', error);
+      }
+    });
+
+    document.getElementById('updateOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orderId = document.getElementById('updateOrderId').value;
+      const paymentMethod = document.getElementById('updatePaymentMethod').value;
+
+      try {
+        const response = await fetch(`/orders/${orderId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer YOUR_TOKEN'
+          },
+          body: JSON.stringify({ paymentMethod })
+        });
+        const result = await response.json();
+        alert('Order updated successfully!');
+        fetchOrders();
+      } catch (error) {
+        console.error('Failed to update order:', error);
+      }
+    });
+
+    document.getElementById('deleteOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orderId = document.getElementById('deleteOrderId').value;
+
+      try {
+        const response = await fetch(`/orders/${orderId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer YOUR_TOKEN'
+          }
+        });
+        const result = await response.json();
+        alert('Order deleted successfully!');
+        fetchOrders();
+      } catch (error) {
+        console.error('Failed to delete order:', error);
+      }
+    });
+
+    // Initial fetch of orders
+    fetchOrders();
+  </script>
+</body>
+</html>

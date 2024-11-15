@@ -1,68 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const Product = require('../models/Product'); // Assuming you have a Product model
-const { verifyAdmin } = require('../middleware/authMiddleware'); // Middleware to check admin access
+const {
+  getAllProducts,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+} = require('../controllers/productController');
+const { verifyAdmin } = require('../middleware/authMiddleware');
 
 // Get all products with optional filters
-router.get('/', async (req, res) => {
-  try {
-    const { category, priceMin, priceMax, sort } = req.query;
-    let query = {};
-
-    // Apply filters
-    if (category) query.category = category;
-    if (priceMin) query.price = { ...query.price, $gte: priceMin };
-    if (priceMax) query.price = { ...query.price, $lte: priceMax };
-
-    // Fetch products from database
-    const products = await Product.find(query).sort(sort ? { [sort]: 1 } : {});
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error });
-  }
-});
+router.get('/', getAllProducts);
 
 // Add a new product (Admin Only)
-router.post('/', verifyAdmin, async (req, res) => {
-  try {
-    const { name, price, description, category, stock } = req.body;
-
-    // Validate required fields
-    if (!name || !price || !category) {
-      return res.status(400).json({ message: 'Name, price,description, stock and category are required' });
-    }
-
-    const newProduct = new Product({ name, price, description, category, stock });
-    const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to add product', error });
-  }
-});
+router.post('/', verifyAdmin, addProduct);
 
 // Update product details (Admin Only)
-router.put('/:id', verifyAdmin, async (req, res) => {
-  try {
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedProduct) return res.status(404).json({ message: 'Product not found' });
-    res.json(updatedProduct);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to update product', error });
-  }
-});
+router.put('/:id', verifyAdmin, updateProduct);
 
 // Delete (soft delete) a product (Admin Only)
-router.delete('/:id', verifyAdmin, async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    product.isAvailable = false; // Mark product as unavailable
-    await product.save();
-    res.json({ message: 'Product marked as unavailable' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to delete product', error });
-  }
-});
+router.delete('/:id', verifyAdmin, deleteProduct);
 
 module.exports = router;

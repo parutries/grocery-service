@@ -1,28 +1,39 @@
 const Order = require('../models/Order'); // Order model
+const Product = require('../models/Product')
 const { verifyUser } = require('../middleware/authMiddleware'); // Assuming you use verifyUser for authentication
 
 // Create an order
 const createOrder = async (req, res) => {
   try {
-    const { products, totalPrice, paymentMethod } = req.body;  // Make sure to include the necessary fields like products, total price, and paymentMethod
+    const { products, paymentMethod } = req.body; // Extract products and paymentMethod from the request body
 
-    // Ensure that products are provided
-    if (!products || products.length === 0) {
-      return res.status(400).json({ message: 'No products specified' });
+    // Check if products is an array and has items
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: 'Products must be a non-empty array' });
     }
 
-    // Ensure that paymentMethod is provided
     if (!paymentMethod) {
       return res.status(400).json({ message: 'Payment method is required' });
     }
 
+    let totalPrice = 0;
+
+    // Calculate total price and validate each product
+    for (const item of products) {
+      const product = await Product.findById(item.product); // Access product directly from item
+      if (!product) {
+        return res.status(404).json({ message: `Product with ID ${item.product} not found` });
+      }
+      totalPrice += product.price * item.quantity;
+    }
+
     // Create a new order object
     const newOrder = new Order({
-      user: req.user._id,  // Assuming the user is added to the request by the verifyUser middleware
+      user: req.user._id, // Assuming the user is added to the request by the verifyUser middleware
       products,
       totalPrice,
-      paymentMethod, // Adding paymentMethod to the order
-      status: 'pending',  // Default status
+      paymentMethod,
+      status: 'pending', // Default status
     });
 
     // Save the new order to the database
@@ -50,15 +61,15 @@ const getOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const orderId = req.params.id;
-    const { status } = req.body;
+    const { paymentMethod } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ message: 'Status is required' });
+    if (!paymentMethod) {
+      return res.status(400).json({ message: 'Payment method is required' });
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
-      { status },
+      { paymentMethod },
       { new: true }
     );
 
@@ -72,8 +83,28 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const deleteOrder = async (req, res) => {
+  try {
+    const orderId  = req.params.id;
+    const userId = req.user.id; // Assuming the user ID is available from the authMiddleware
+    console.log('orderId:', orderId);
+    console.log('userId:', userId);
+    // Find the order and ensure it belongs to the authenticated user
+    const order = await Order.findOneAndDelete({ _id: orderId, user: userId });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found or not authorized to delete' });
+    }
+
+    res.status(200).json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting order', error: error.message });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrders,
   updateOrderStatus,
+  deleteOrder
 };
